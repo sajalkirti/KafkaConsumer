@@ -1,0 +1,59 @@
+## .gitignore for .NET / Visual Studio projects
+
+# Build Folders
+bin/
+obj/
+out/
+
+# Visual Studio files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+
+# Publish output
+publish/
+
+# Test results
+TestResults/
+*.trx
+
+# Database files
+*.mdf
+*.ldf
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Certificates and keys
+*.pfx
+*.key
+
+# User-specific files
+*.log
+local.settings.json
+appsettings.*.json
+secrets.json
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# JetBrains Rider
+/.idea
+
+# Azure Functions
+bin/Debug*/net*/*
