@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>KafkaConsumerMicroService - Live Demo</title>
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; margin: 20px; }
+      h1 { font-size: 1.4rem; }
+      .container { display: flex; gap: 20px; }
+      .panel { flex: 1; border: 1px solid #ddd; padding: 12px; border-radius: 6px; }
+      pre { white-space: pre-wrap; word-break: break-word; background:#f8f8f8; padding:8px; }
+      .record { padding:6px; border-bottom:1px solid #eee; }
+      .valid { background: #e6ffed; }
+      .invalid { background: #ffecec; }
+      .controls { margin-bottom: 10px; }
+    </style>
+  </head>
+  <body>
+    <h1>Live PnL Records (SignalR Demo)</h1>
+    <div class="controls">
+      <button id="connectBtn">Connect</button>
+      <button id="disconnectBtn" disabled>Disconnect</button>
+      <span id="status">Disconnected</span>
+    </div>
+
+    <div class="container">
+      <div class="panel">
+        <h2>Valid Records</h2>
+        <div id="validList"></div>
+      </div>
+      <div class="panel">
+        <h2>Invalid Records</h2>
+        <div id="invalidList"></div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@7.0.5/dist/browser/signalr.min.js"></script>
+    <script>
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const statusEl = document.getElementById('status');
+      const validList = document.getElementById('validList');
+      const invalidList = document.getElementById('invalidList');
+
+      let connection;
+
+      function renderRecord(container, rec, cls) {
+        const div = document.createElement('div');
+        div.className = 'record ' + cls;
+        const time = new Date(rec.receivedAt).toLocaleString();
+        div.innerHTML = `<strong>${rec.sourceSystem}</strong> — Acc:${rec.accountNumber} — PnL:${rec.pnLAmount} <br/><small>${time}</small>`;
+        container.prepend(div);
+      }
+
+      async function start() {
+        if (connection) return;
+          // build connection to hub
+        
+        connection = new signalR.HubConnectionBuilder()
+          .withUrl('/hubs/data')
+          .withAutomaticReconnect()
+          .build();
+          console.log('Connecting to SignalR hub...', connection);
+        connection.on('ValidRecord', rec => {
+          try { renderRecord(validList, rec, 'valid'); } catch(e){ console.error(e); }
+        });
+
+        connection.on('InvalidRecord', rec => {
+          try { renderRecord(invalidList, rec, 'invalid'); } catch(e){ console.error(e); }
+        });
+
+        connection.onreconnecting(() => { statusEl.textContent = 'Reconnecting...'; });
+        connection.onreconnected(() => { statusEl.textContent = 'Connected'; });
+        connection.onclose(() => { statusEl.textContent = 'Disconnected'; connectBtn.disabled = false; disconnectBtn.disabled = true; connection = null; });
+
+        try {
+          await connection.start();
+          statusEl.textContent = 'Connected';
+          connectBtn.disabled = true;
+          disconnectBtn.disabled = false;
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = 'Error connecting';
+          connection = null;
+        }
+      }
+
+      async function stop() {
+        if (!connection) return;
+        await connection.stop();
+      }
+
+      connectBtn.addEventListener('click', () => start());
+      disconnectBtn.addEventListener('click', () => stop());
+
+      // Auto-connect for convenience
+      start();
+    </script>
+  </body>
+</html>

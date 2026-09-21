@@ -4,3 +4,37 @@ GET {{KafkaConsumerMicroService_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+### Get OpenAPI JSON (HTTP)
+GET {{KafkaConsumerMicroService_HostAddress}}/openapi
+Accept: application/json
+
+###
+
+### Open API UI (browser)
+GET {{KafkaConsumerMicroService_HostAddress}}/openapi/ui
+Accept: text/html
+
+###
+
+### Health ping
+GET {{KafkaConsumerMicroService_HostAddress}}/api/health/ping
+Accept: application/json
+
+###
+
+### Recent valid records
+GET {{KafkaConsumerMicroService_HostAddress}}/api/health/valid-records
+Accept: application/json
+
+###
+
+### Recent invalid records
+GET {{KafkaConsumerMicroService_HostAddress}}/api/health/invalid-records
+Accept: application/json
+
+###
+
+### Demo UI (SignalR client)
+GET {{KafkaConsumerMicroService_HostAddress}}/demo.html
+Accept: text/html
+

@@ -63,6 +63,9 @@ app.UseRouting();
 app.UseCors(corsPolicyName);
 app.UseAuthorization();
 
+// Serve static files (demo UI)
+app.UseStaticFiles();
+
 // Use framework-provided OpenAPI endpoints (avoids Swashbuckle runtime conflicts)
 app.MapOpenApi();
 
