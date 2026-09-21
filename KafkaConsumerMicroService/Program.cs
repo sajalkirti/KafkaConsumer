@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-// using Microsoft.AspNetCore.OpenApi; // not required when using custom OpenAPI endpoints
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +9,8 @@ var configuration = builder.Configuration;
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
+// Use built-in OpenAPI helper (lightweight)
+builder.Services.AddOpenApi();
 
 // CORS: allow browser-based clients to access the API and SignalR hub.
 // In production lock this down to specific origins (read from configuration).
@@ -57,9 +58,20 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
+app.Use(async (context, next) => { context.Response.Headers["Permissions-Policy"] = "unload=(self)"; await next(); });
 app.UseRouting();
 app.UseCors(corsPolicyName);
 app.UseAuthorization();
+
+// Use framework-provided OpenAPI endpoints (avoids Swashbuckle runtime conflicts)
+app.MapOpenApi();
+
+// Provide a simple UI route that loads the OpenAPI JSON using ReDoc
+app.MapGet("/openapi/ui", () =>
+{
+    var html = "<!doctype html>\n<html>\n  <head>\n    <meta charset='utf-8'/>\n    <title>API Docs</title>\n    <meta name='viewport' content='width=device-width, initial-scale=1'>\n    <script src='https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js'></script>\n  </head>\n  <body>\n    <redoc spec-url='/openapi'></redoc>\n  </body>\n</html>";
+    return Results.Content(html, "text/html");
+});
 
 app.MapControllers();
 app.MapHub<KafkaConsumerMicroService.Hubs.DataHub>("/hubs/data");
