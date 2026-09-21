@@ -10,21 +10,20 @@ namespace KafkaConsumerMicroService.Services
 {
     public class ValidationService : IValidationService
     {
-        private readonly AppDbContext _db;
-        private readonly IHubContext<DataHub> _hub;
+        private readonly IRecordValidator _validator;
+        private readonly IRecordDispatcher _dispatcher;
 
-        public ValidationService(AppDbContext db, IHubContext<DataHub> hub)
+        public ValidationService(IRecordValidator validator, IRecordDispatcher dispatcher)
         {
-            _db = db;
-            _hub = hub;
+            _validator = validator;
+            _dispatcher = dispatcher;
         }
 
-        // Accepts raw message payload, validates against business rules, persists and broadcasts
+        // Accepts raw message payload, validates and forwards to dispatcher
         public async Task ProcessMessageAsync(string rawPayload)
         {
             if (string.IsNullOrWhiteSpace(rawPayload)) return;
 
-            // Expecting JSON with SourceSystem (string), AccountNumber (int), PnLAmount (double)
             try
             {
                 using var doc = JsonDocument.Parse(rawPayload);
@@ -39,22 +38,11 @@ namespace KafkaConsumerMicroService.Services
                     ReceivedAt = DateTimeOffset.UtcNow
                 };
 
-                // Business rule: PnL amount zero => invalid
-                rec.IsValid = Math.Abs(rec.PnLAmount) > double.Epsilon;
-
-                // Metadata example (can be expanded later)
-                rec.Metadata = JsonSerializer.Serialize(new { processedAt = DateTimeOffset.UtcNow, source = rec.SourceSystem });
-
-                _db.MarketRecords.Add(rec);
-                await _db.SaveChangesAsync();
-
-                // Broadcast to connected clients in real-time
-                var method = rec.IsValid ? "ValidRecord" : "InvalidRecord";
-                await _hub.Clients.All.SendAsync(method, rec);
+                rec.IsValid = _validator.IsValid(rec);
+                await _dispatcher.StoreAndBroadcastAsync(rec);
             }
             catch (Exception ex)
             {
-                // In production, use structured logging and dead-lettering. For now, persist minimal audit.
                 var err = new MarketRecord
                 {
                     RawPayload = rawPayload,
@@ -65,9 +53,7 @@ namespace KafkaConsumerMicroService.Services
                     Metadata = JsonSerializer.Serialize(new { error = ex.Message, processedAt = DateTimeOffset.UtcNow }),
                     ReceivedAt = DateTimeOffset.UtcNow
                 };
-                _db.MarketRecords.Add(err);
-                await _db.SaveChangesAsync();
-                await _hub.Clients.All.SendAsync("InvalidRecord", err);
+                await _dispatcher.StoreAndBroadcastAsync(err);
             }
         }
     }

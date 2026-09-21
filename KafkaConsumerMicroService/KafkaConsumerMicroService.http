@@ -1,5 +1,13 @@
 @KafkaConsumerMicroService_HostAddress = http://localhost:5251
 
+### Sample CSV file (create sample.csv in the same folder for testing)
+###
+### SourceSystem,AccountNumber,PnLAmount
+### XFeed,1234,100.5
+### RealtimeBus,2345,0.0
+### ExtSystem,3456,-50.25
+###
+
 GET {{KafkaConsumerMicroService_HostAddress}}/weatherforecast/
 Accept: application/json
 
@@ -37,4 +45,23 @@ Accept: application/json
 ### Demo UI (SignalR client)
 GET {{KafkaConsumerMicroService_HostAddress}}/demo.html
 Accept: text/html
+
+
+### Upload CSV using curl (use -k for dev self-signed certs)
+# curl -k -X POST "https://localhost:7023/api/ingest/csv" -F "file=@./sample.csv"
+
+### Upload CSV using REST Client (multipart). Save sample.csv next to this file and run.
+POST {{KafkaConsumerMicroService_HostAddress}}/api/ingest/csv
+Content-Type: multipart/form-data
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="sample.csv"
+Content-Type: text/csv
+
+SourceSystem,AccountNumber,PnLAmount
+XFeed,1234,100.5
+RealtimeBus,2345,0.0
+ExtSystem,3456,-50.25
+
+--boundary--
 

@@ -42,6 +42,9 @@ else
 
 // Application services
 builder.Services.AddScoped<KafkaConsumerMicroService.Services.IValidationService, KafkaConsumerMicroService.Services.ValidationService>();
+builder.Services.AddScoped<KafkaConsumerMicroService.Services.IRecordValidator, KafkaConsumerMicroService.Services.RecordValidator>();
+builder.Services.AddScoped<KafkaConsumerMicroService.Services.IRecordDispatcher, KafkaConsumerMicroService.Services.RecordDispatcher>();
+builder.Services.AddScoped<KafkaConsumerMicroService.Services.IFileImportService, KafkaConsumerMicroService.Services.CsvFileImportService>();
 builder.Services.AddHostedService<KafkaConsumerMicroService.Services.KafkaConsumerService>();
 
 var app = builder.Build();
