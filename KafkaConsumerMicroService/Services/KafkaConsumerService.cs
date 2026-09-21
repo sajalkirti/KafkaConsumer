@@ -12,13 +12,13 @@ namespace KafkaConsumerMicroService.Services
     public class KafkaConsumerService : BackgroundService
     {
         private readonly ILogger<KafkaConsumerService> _logger;
-        private readonly ValidationService _validator;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _config;
 
-        public KafkaConsumerService(ILogger<KafkaConsumerService> logger, ValidationService validator, IConfiguration config)
+        public KafkaConsumerService(ILogger<KafkaConsumerService> logger, IServiceScopeFactory scopeFactory, IConfiguration config)
         {
             _logger = logger;
-            _validator = validator;
+            _scopeFactory = scopeFactory;
             _config = config;
         }
 
@@ -66,7 +66,13 @@ namespace KafkaConsumerMicroService.Services
                     }
 
                     var payload = JsonSerializer.Serialize(msg);
-                    await _validator.ProcessMessageAsync(payload);
+
+                    // Resolve the scoped validation service from a new scope for each message (best practice)
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        var validator = scope.ServiceProvider.GetRequiredService<IValidationService>();
+                        await validator.ProcessMessageAsync(payload);
+                    }
 
                     // Throttle: in production tune concurrency/parallelism and use partitioned consumers
                     await Task.Delay(250, stoppingToken);

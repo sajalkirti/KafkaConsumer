@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+// using Microsoft.AspNetCore.OpenApi; // not required when using custom OpenAPI endpoints
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,8 +10,22 @@ var configuration = builder.Configuration;
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
-// Use the lightweight OpenAPI helper package included in ASP.NET Core templates
-builder.Services.AddOpenApi();
+
+// CORS: allow browser-based clients to access the API and SignalR hub.
+// In production lock this down to specific origins (read from configuration).
+var corsPolicyName = "DefaultCorsPolicy";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicyName, policy =>
+    {
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            // Allow any origin for demo; in production use specific origins via .WithOrigins(...)
+            .SetIsOriginAllowed(_ => true)
+            .AllowCredentials();
+    });
+});
 
 // Choose DB provider by configuration. Default to InMemory for demo.
 var connection = configuration.GetConnectionString("DefaultConnection");
@@ -25,7 +40,7 @@ else
 }
 
 // Application services
-builder.Services.AddScoped<KafkaConsumerMicroService.Services.ValidationService>();
+builder.Services.AddScoped<KafkaConsumerMicroService.Services.IValidationService, KafkaConsumerMicroService.Services.ValidationService>();
 builder.Services.AddHostedService<KafkaConsumerMicroService.Services.KafkaConsumerService>();
 
 var app = builder.Build();
@@ -40,11 +55,10 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    // Map OpenAPI endpoints for development UI
-    app.MapOpenApi();
 }
 
 app.UseRouting();
+app.UseCors(corsPolicyName);
 app.UseAuthorization();
 
 app.MapControllers();

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KafkaConsumerMicroService.Services
 {
-    public class ValidationService
+    public class ValidationService : IValidationService
     {
         private readonly AppDbContext _db;
         private readonly IHubContext<DataHub> _hub;
