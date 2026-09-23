@@ -39,6 +39,10 @@ namespace KafkaConsumerMicroService.Services
                 return (0, new[] { "Empty CSV" });
             }
 
+            if (header.StartsWith("\"") && header.EndsWith("\""))
+            {
+                header = header.Substring(1, header.Length - 2);
+            }
             var columns = header.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             var idxSource = Array.IndexOf(columns, "SourceSystem");
             var idxAccount = Array.IndexOf(columns, "AccountNumber");
@@ -53,6 +57,10 @@ namespace KafkaConsumerMicroService.Services
             while (!cancellationToken.IsCancellationRequested && (line = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
+                if (line.StartsWith("\"") && line.EndsWith("\""))
+                {
+                    line = line.Substring(1, line.Length - 2);
+                }
 
                 var parts = line.Split(',', StringSplitOptions.TrimEntries);
                 try
@@ -87,6 +95,27 @@ namespace KafkaConsumerMicroService.Services
                 catch (Exception ex)
                 {
                     errors.Add($"Line: '{line}' => {ex.Message}");
+
+                    // Persist invalid record for audit and reporting. Do not duplicate logic: reuse dispatcher.
+                    var errRec = new MarketRecord
+                    {
+                        RawPayload = line,
+                        SourceSystem = parts.Length > idxSource ? parts[idxSource] : "<parse_error>",
+                        AccountNumber = 0,
+                        PnLAmount = 0,
+                        IsValid = false,
+                        ReceivedAt = DateTimeOffset.UtcNow,
+                        Metadata = System.Text.Json.JsonSerializer.Serialize(new { error = ex.Message, errorType = ex.GetType().Name, processedAt = DateTimeOffset.UtcNow })
+                    };
+
+                    try
+                    {
+                        await _dispatcher.StoreAndBroadcastAsync(errRec).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // Swallow dispatcher errors during error reporting to avoid masking original parse issues.
+                    }
                 }
             }
 
