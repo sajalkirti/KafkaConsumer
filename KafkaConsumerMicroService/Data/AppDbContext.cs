@@ -27,6 +27,8 @@ namespace KafkaConsumerMicroService.Data
                 b.HasIndex(x => x.AccountNumber);
                 b.HasIndex(x => x.IsValid);
                 b.HasIndex(x => x.ReceivedAt);
+                // Composite index to accelerate queries that filter by IsValid and sort by ReceivedAt
+                b.HasIndex(x => new { x.IsValid, x.ReceivedAt });
             });
         }
     }
