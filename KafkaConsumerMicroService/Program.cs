@@ -33,11 +33,11 @@ var connection = configuration.GetConnectionString("DefaultConnection");
 if (!string.IsNullOrWhiteSpace(connection))
 {
     // If a real connection string is provided, user likely intends to use SQL Server or other provider
-    builder.Services.AddDbContext<KafkaConsumerMicroService.Data.AppDbContext>(opts => opts.UseSqlServer(connection));
+    builder.Services.AddDbContextPool<KafkaConsumerMicroService.Data.AppDbContext>(opts => opts.UseSqlServer(connection));
 }
 else
 {
-    builder.Services.AddDbContext<KafkaConsumerMicroService.Data.AppDbContext>(opts => opts.UseInMemoryDatabase("MarketDb"));
+    builder.Services.AddDbContextPool<KafkaConsumerMicroService.Data.AppDbContext>(opts => opts.UseInMemoryDatabase("MarketDb"));
 }
 
 // Application services
